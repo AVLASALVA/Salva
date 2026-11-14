@@ -71,27 +71,74 @@ body {
 }
 
 .btn {
-    padding: 12px 24px;
+    padding: 10px 20px;
     border: none;
     border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 .btn-primary {
-    background: transparent;
-    color: #000;
-    border: 1px solid #000;
-    width: 100%;
+    background: #2563eb;
+    color: #ffffff;
+    border: 1px solid #1d4ed8;
 }
 
 .btn-primary:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: #1d4ed8;
+    color: #ffffff;
 }
 
-/* BotÃƒÂ³n blanco especÃƒÂ­fico para licencias-admin */
+/* Botones de acción específicos de la tabla de licencias */
+.btn-action-activate {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #86efac !important;
+    font-weight: 600 !important;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-action-activate:hover {
+    background: #bbf7d0 !important;
+    color: #14532d !important;
+}
+
+.btn-action-pause {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 600 !important;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-action-pause:hover {
+    background: #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+.btn-action-delete {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border: 1px solid #dc2626 !important;
+    font-weight: 600 !important;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-action-delete:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+/* Botón blanco específico para licencias-admin */
 .licencias-admin-btn {
     background: #fff;
     color: #000;
@@ -104,26 +151,28 @@ body {
 }
 
 .btn-secondary {
-    background: #e0e0e0;
-    color: #333;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
 }
 
 .btn-secondary:hover {
-    background: #d0d0d0;
+    background: #e2e8f0;
+    color: #1e293b;
 }
 
-.btn-small {
-    padding: 6px 12px;
-    font-size: 12px;
+.btn-small, .btn-sm {
+    padding: 5px 10px;
+    font-size: 11px;
 }
 
 .btn-danger {
-    background: #e74c3c;
+    background: #ef4444;
     color: white;
 }
 
 .btn-danger:hover {
-    background: #c0392b;
+    background: #dc2626;
 }
 
 .message {
@@ -379,13 +428,17 @@ tr:hover {
 }
 
 .badge.active {
-    background: #d4edda;
-    color: #155724;
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #86efac !important;
+    font-weight: 600;
 }
 
 .badge.inactive {
-    background: #f8d7da;
-    color: #721c24;
+    background: #f1f5f9 !important;
+    color: #64748b !important;
+    border: 1px solid #cbd5e1 !important;
+    font-weight: 600;
 }
 
 .badge-plan {
@@ -811,78 +864,138 @@ tr:hover {
     background: #feb2b2;
 }
 
-/* Tabla de Horario */
-.schedule-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 11px;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
+/* ======================================================== */
+/* TABLA DE HORARIO - ESTILO SISTEMA UNIVERSITARIO SIS */
+/* ======================================================== */
+
+.schedule-table-card {
+    border: 1px solid #b9d3ee;
+    border-radius: 8px;
     overflow: hidden;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.08);
+    margin-top: 12px;
 }
 
-.schedule-table thead {
-    background: #f7fafc;
-}
-
-.schedule-table th {
-    padding: 8px 6px;
-    text-align: center;
-    font-weight: 600;
-    color: #2d3748;
-    border-bottom: 2px solid #e2e8f0;
-    font-size: 11px;
-}
-
-.schedule-table td {
-    padding: 4px 2px;
-    border: 1px solid #e2e8f0;
-    text-align: center;
-}
-
-.schedule-table tr:first-child td {
-    border-top: none;
-}
-
-.schedule-table tr td:first-child {
-    background: #f7fafc;
-    font-weight: 600;
-    color: #4a5568;
-    border-right: 2px solid #e2e8f0;
-    white-space: nowrap;
-}
-
-.schedule-table input {
-    width: 100%;
-    min-width: 60px;
-    padding: 4px 6px;
-    border: 1px solid #cbd5e0;
-    border-radius: 4px;
-    font-size: 10px;
-    text-align: center;
-    background: #fff;
-    color: #2d3748;
-    transition: border-color 0.2s;
-}
-
-.schedule-table input:focus {
-    outline: none;
-    border-color: #000;
-    background: #fff;
-}
-
-.schedule-table input::placeholder {
-    color: #a0aec0;
-    font-size: 9px;
+.schedule-table-banner {
+    background: linear-gradient(180deg, #dce8f8 0%, #c9dbf2 100%);
+    color: #1e3a8a;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 9px 16px;
+    border-bottom: 1px solid #b9d3ee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    letter-spacing: 0.3px;
 }
 
 .schedule-table-container {
-    max-height: 400px;
+    max-height: 54vh;
     overflow-y: auto;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    margin-top: 12px;
+    overflow-x: auto;
+    position: relative;
+    background: #ffffff;
+}
+
+.schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 11px;
+    table-layout: fixed;
+    min-width: 820px;
+    background: #ffffff;
+}
+
+.schedule-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f1f5f9;
+    color: #1e293b;
+    font-weight: 700;
+    font-size: 12px;
+    text-align: center;
+    padding: 10px 4px;
+    border: 1px solid #cbd5e1;
+    border-top: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.schedule-table thead th.col-hora {
+    width: 120px;
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.schedule-table tbody tr {
+    height: 48px;
+}
+
+.schedule-table tbody td {
+    padding: 0;
+    border: 1px solid #cbd5e1;
+    text-align: center;
+    vertical-align: middle;
+    background: #ffffff;
+    transition: background 0.15s ease;
+    position: relative;
+}
+
+.schedule-table tbody td.cell-hora {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 6px 8px;
+    white-space: nowrap;
+    border-right: 2px solid #94a3b8;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    user-select: none;
+}
+
+.schedule-table tbody td.has-class {
+    background-color: #E8EEF7 !important;
+}
+
+.schedule-table .schedule-cell-input {
+    width: 100%;
+    height: 100%;
+    min-height: 46px;
+    border: none;
+    outline: none;
+    background: transparent;
+    text-align: center;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    color: #334155;
+    padding: 4px;
+    box-sizing: border-box;
+    display: block;
+    line-height: 1.25;
+}
+
+.schedule-table .schedule-cell-input::placeholder {
+    color: #cbd5e1;
+    font-weight: normal;
+}
+
+.schedule-table .schedule-cell-input:focus {
+    background: #ffffff;
+    box-shadow: inset 0 0 0 2px #3b82f6;
+    border-radius: 2px;
+}
+
+.schedule-table .schedule-cell-input.filled,
+.schedule-table td.has-class .schedule-cell-input {
+    background: #E8EEF7 !important;
+    color: #801424 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
 }
 
 .schedule-actions {

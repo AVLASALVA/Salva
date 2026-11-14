@@ -81,7 +81,7 @@
 
     <!-- Modal Crear Licencia -->
     <div id="user-modal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 1050px; width: 95%; max-height: 92vh;">
             <h2>Nueva Licencia</h2>
             <form id="user-modal-form">
                 <div class="form-group">
@@ -130,39 +130,34 @@
                             <small class="quiz-hint">Escribe la materia en los bloques de cada día. La licencia funcionará todas las semanas automáticamente <strong>5 minutos antes</strong> y hasta <strong>15 minutos después</strong> de cada hora programada.</small>
                         </div>
 
-                        <div class="schedule-table-container">
-                            <table class="schedule-table" id="schedule-table">
-                                <thead>
-                                    <tr>
-                                        <th>Horario</th>
-                                        <th>Lunes</th>
-                                        <th>Martes</th>
-                                        <th>Miércoles</th>
-                                        <th>Jueves</th>
-                                        <th>Viernes</th>
-                                        <th>Sábado</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="schedule-table-body">
-                                    <!-- Se llena dinámicamente con JS -->
-                                </tbody>
-                            </table>
+                        <div class="schedule-table-card">
+                            <div class="schedule-table-banner">
+                                <span>Horario de Clases</span>
+                                <small style="font-weight: normal; opacity: 0.9;">Escribe la materia en los bloques de cada día</small>
+                            </div>
+                            <div class="schedule-table-container">
+                                <table class="schedule-table" id="schedule-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-hora">Hora</th>
+                                            <th>Lunes</th>
+                                            <th>Martes</th>
+                                            <th>Miércoles</th>
+                                            <th>Jueves</th>
+                                            <th>Viernes</th>
+                                            <th>Sábado</th>
+                                            <th>Domingo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="schedule-table-body">
+                                        <!-- Se llena dinámicamente con JS -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
 
-                        <div class="schedule-actions">
-                            <button type="button" id="btn-clear-schedule" class="btn btn-secondary">Limpiar Horario</button>
-                            <button type="button" id="btn-generate-quizzes" class="btn btn-primary">Generar Horario</button>
-                        </div>
-                    </div>
-
-                    <!-- Resumen del horario generado -->
-                    <div class="scheduled-quizzes-container">
-                        <div class="quizzes-header">
-                            <h4>Horario Semanal (<span id="quizzes-count">0</span> clases)</h4>
-                            <small>Se repite cada semana automáticamente</small>
-                        </div>
-                        <div id="quizzes-list" class="quizzes-list">
-                            <p class="no-quizzes-msg" id="no-quizzes-msg">Llena las materias y haz clic en "Generar Horario".</p>
+                        <div class="schedule-actions" style="margin-top: 10px; display: flex; justify-content: flex-end;">
+                            <button type="button" id="btn-clear-schedule" class="btn btn-secondary btn-sm">Limpiar Horario</button>
                         </div>
                     </div>
                 </div>
@@ -178,39 +173,45 @@
 
     <!-- Modal Modificar / Ver Horario -->
     <div id="schedule-modal" class="modal hidden">
-        <div class="modal-content" style="max-width: 950px; width: 95%; max-height: 92vh;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+        <div class="modal-content" style="max-width: 1050px; width: 95%; max-height: 92vh;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
                 <div>
                     <h2 id="schedule-modal-title" style="margin: 0; color: #1e293b; font-size: 20px;">📅 Horario del Alumno</h2>
-                    <small style="color: #64748b; font-size: 12px;">Escribe la materia en los cuadros correspondientes a cada día y hora (5 min antes / 15 min después).</small>
+                    <small style="color: #64748b; font-size: 12px;">Escribe o edita las materias en los bloques de cada día (activa 5 min antes y 15 min después).</small>
                 </div>
                 <button type="button" class="btn btn-secondary" onclick="closeScheduleModal()" style="font-size: 18px; padding: 4px 10px; line-height: 1;">✕</button>
             </div>
 
-            <div class="schedule-table-container" style="max-height: 58vh; overflow-y: auto;">
-                <table class="schedule-table" id="edit-schedule-table">
-                    <thead>
-                        <tr>
-                            <th>Horario</th>
-                            <th>Lunes</th>
-                            <th>Martes</th>
-                            <th>Miércoles</th>
-                            <th>Jueves</th>
-                            <th>Viernes</th>
-                            <th>Sábado</th>
-                            <th>Domingo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="edit-schedule-table-body">
-                        <!-- Generado dinámicamente con inputs -->
-                    </tbody>
-                </table>
+            <div class="schedule-table-card">
+                <div class="schedule-table-banner">
+                    <span>Horario de Clases</span>
+                    <span id="edit-schedule-counter" style="font-size: 11px; font-weight: normal; background: rgba(255,255,255,0.4); padding: 2px 10px; border-radius: 12px; color: #1e3a8a;">0 materias asignadas</span>
+                </div>
+                <div class="schedule-table-container" style="max-height: 56vh; overflow-y: auto;">
+                    <table class="schedule-table" id="edit-schedule-table">
+                        <thead>
+                            <tr>
+                                <th class="col-hora">Hora</th>
+                                <th>Lunes</th>
+                                <th>Martes</th>
+                                <th>Miércoles</th>
+                                <th>Jueves</th>
+                                <th>Viernes</th>
+                                <th>Sábado</th>
+                                <th>Domingo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="edit-schedule-table-body">
+                            <!-- Generado dinámicamente con inputs -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div id="schedule-modal-message" class="message" style="margin-top: 12px;"></div>
 
-            <div class="modal-actions" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 12px;">
-                <button type="button" class="btn btn-danger" onclick="clearEditScheduleTable()" style="background: #ef4444; color: white; padding: 8px 14px; font-size: 13px;">
+            <div class="modal-actions" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                <button type="button" class="btn btn-action-delete" onclick="clearEditScheduleTable()" style="padding: 8px 14px; font-size: 13px;">
                     🗑️ Limpiar Todo
                 </button>
                 <div style="display: flex; gap: 10px;">

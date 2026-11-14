@@ -174,13 +174,19 @@ function renderUsers() {
         const isExpired = new Date(u.fecha_expiracion) <= now;
         const totalClasses = countTotalClasses(u.horario_activacion);
 
+        const esPrueba15Min = u.plan && u.plan.toLowerCase().includes('minuto');
+
         let statusBadge = '';
         if (isExpired) {
             statusBadge = '<span class="badge expired">Expirada</span>';
         } else if (u.estado === 'activo') {
-            statusBadge = '<span class="badge active">Activa</span>';
+            if (!esPrueba15Min && totalClasses === 0) {
+                statusBadge = '<span class="badge" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;">⚠️ Sin horario</span>';
+            } else {
+                statusBadge = '<span class="badge active">✅ Activa</span>';
+            }
         } else {
-            statusBadge = '<span class="badge inactive">Inactiva</span>';
+            statusBadge = '<span class="badge inactive">❌ Inactiva</span>';
         }
 
         const isOnline = u.ultimo_latido && (now - new Date(u.ultimo_latido)) < 70 * 1000;
@@ -201,9 +207,9 @@ function renderUsers() {
                 <td>${statusBadge}</td>
                 <td class="row-actions">
                     ${u.estado === 'activo'
-                        ? `<button class="btn btn-secondary btn-sm" onclick="toggleStatus('${u.id}', 'inactivo')">Pausar</button>`
-                        : `<button class="btn btn-primary btn-sm" onclick="toggleStatus('${u.id}', 'activo')">Activar</button>`}
-                    <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}', '${escapeHtml(u.usuario)}')">Borrar</button>
+                        ? `<button class="btn btn-action-pause btn-sm" onclick="toggleStatus('${u.id}', 'inactivo')">Pausar</button>`
+                        : `<button class="btn btn-action-activate btn-sm" onclick="toggleStatus('${u.id}', 'activo')">Activar</button>`}
+                    <button class="btn btn-action-delete btn-sm" onclick="deleteUser('${u.id}', '${escapeHtml(u.usuario)}')">Borrar</button>
                 </td>
             </tr>
         `;
@@ -220,6 +226,7 @@ function countTotalClasses(horario) {
 }
 
 function renderScheduleCell(u, totalClasses) {
+    const esPrueba15Min = u.plan && u.plan.toLowerCase().includes('minuto');
     if (totalClasses > 0) {
         return `
             <button class="btn btn-secondary btn-sm" onclick="openScheduleEditor('${u.id}')" style="display:inline-flex; align-items:center; gap:5px;">
@@ -228,9 +235,12 @@ function renderScheduleCell(u, totalClasses) {
             </button>
         `;
     }
+    if (esPrueba15Min) {
+        return `<span style="color:#64748b; font-size:12px;">⚡ Sin horario (15 min)</span>`;
+    }
     return `
-        <button class="btn btn-secondary btn-sm" onclick="openScheduleEditor('${u.id}')" style="opacity:0.75; font-size:12px;">
-            <span>➕ Programar</span>
+        <button class="btn btn-secondary btn-sm" onclick="openScheduleEditor('${u.id}')" style="background:#fef2f2; border:1px solid #fecaca; color:#dc2626; font-size:11px; font-weight:600;" title="Sin materias configuradas. Estará bloqueado hasta que le asignes horario.">
+            <span>⚠️ Sin materias (Bloqueado)</span>
         </button>
     `;
 }
@@ -338,42 +348,25 @@ userModalForm.addEventListener('submit', async (e) => {
         expiracion = new Date(Date.now() + 15 * 60 * 1000);
         horario = {};
     } else {
-        if (!window.scheduleData || Object.keys(window.scheduleData).length === 0) {
-            showMessage("user-modal-message", "Llena las materias y haz clic en 'Generar Horario' antes de guardar", "error");
-            return;
-        }
-
         planNombre = 'Horario semanal';
-        // Vigencia de 1 año para repetirse todas las semanas según su horario
         expiracion.setFullYear(expiracion.getFullYear() + 1);
 
-        const dayMapping = {
-            'lunes': 'lunes',
-            'martes': 'martes',
-            'miercoles': 'miércoles',
-            'jueves': 'jueves',
-            'viernes': 'viernes',
-            'sabado': 'sábado'
-        };
+        const inputs = document.querySelectorAll('#schedule-table input.schedule-cell-input');
+        horario = {};
 
-        for (const [dayName, classes] of Object.entries(window.scheduleData)) {
-            const dayKey = dayMapping[dayName] || dayName;
-            horario[dayKey] = classes.map(cls => {
-                const [startStr, endStr] = cls.hour.split(' - ');
-                let [sh, sp] = startStr.split(' ');
-                let [eh, ep] = endStr.split(' ');
-                sh = parseInt(sh);
-                eh = parseInt(eh);
-                if (sp === 'pm' && sh !== 12) sh += 12;
-                if (sp === 'am' && sh === 12) sh = 0;
-                if (ep === 'pm' && eh !== 12) eh += 12;
-                if (ep === 'am' && eh === 12) eh = 0;
+        inputs.forEach(input => {
+            const val = input.value.trim();
+            if (val) {
+                const day = input.dataset.day;
+                const dbHour = input.dataset.dbHour;
+                if (!horario[day]) horario[day] = [];
+                horario[day].push({ hora: dbHour, asignatura: val });
+            }
+        });
 
-                return {
-                    hora: `${String(sh).padStart(2, '0')}:00 - ${String(eh).padStart(2, '0')}:00`,
-                    asignatura: cls.materia
-                };
-            });
+        if (Object.keys(horario).length === 0) {
+            showMessage("user-modal-message", "Escribe al menos una materia en el horario de clases antes de crear la licencia", "error");
+            return;
         }
     }
 
@@ -404,39 +397,78 @@ userModalForm.addEventListener('submit', async (e) => {
 });
 
 // ==========================================
-// TABLA DE HORARIO EN MODAL DE CREACIÓN
+// CONFIGURACIÓN Y GENERADOR DEL HORARIO (PORTAL UNIVERSITARIO)
 // ==========================================
 
+const SCHEDULE_DAYS = [
+    { key: 'lunes', label: 'Lunes' },
+    { key: 'martes', label: 'Martes' },
+    { key: 'miércoles', label: 'Miércoles' },
+    { key: 'jueves', label: 'Jueves' },
+    { key: 'viernes', label: 'Viernes' },
+    { key: 'sábado', label: 'Sábado' },
+    { key: 'domingo', label: 'Domingo' }
+];
+
+function getScheduleHours() {
+    const list = [];
+    for (let h = 6; h <= 23; h++) {
+        const nextH = (h + 1) % 24;
+        const period1 = h < 12 ? 'am' : 'pm';
+        const h12_1 = h % 12 === 0 ? 12 : h % 12;
+        const period2 = (h + 1) < 12 || (h + 1) === 24 ? 'am' : 'pm';
+        const h12_2 = nextH % 12 === 0 ? 12 : nextH % 12;
+
+        const displayLabel = `${String(h12_1).padStart(2, '0')} ${period1} - ${String(h12_2).padStart(2, '0')} ${period2}`;
+        const dbHour = `${String(h).padStart(2, '0')}:00 - ${String(h + 1).padStart(2, '0')}:00`;
+
+        list.push({
+            startH: h,
+            display: displayLabel,
+            dbHour: dbHour
+        });
+    }
+    return list;
+}
+
+function updateCellVisual(input) {
+    const td = input.closest('td');
+    if (input.value && input.value.trim() !== '') {
+        input.classList.add('filled');
+        if (td) td.classList.add('has-class');
+    } else {
+        input.classList.remove('filled');
+        if (td) td.classList.remove('has-class');
+    }
+}
+
+// Generar tabla en Modal de Creación
 function generateScheduleTable() {
     const tbody = document.getElementById('schedule-table-body');
     if (!tbody || tbody.children.length > 0) return;
 
     tbody.innerHTML = '';
-    const hours = [];
-    for (let h = 6; h <= 22; h++) {
-        const period = h < 12 ? 'am' : 'pm';
-        const hour12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
-        const nextH = h + 1;
-        const nextPeriod = nextH < 12 ? 'am' : 'pm';
-        const nextHour12 = nextH > 12 ? nextH - 12 : (nextH === 0 ? 12 : nextH);
-        hours.push(`${String(hour12).padStart(2, '0')} ${period} - ${String(nextHour12).padStart(2, '0')} ${nextPeriod}`);
-    }
+    const hours = getScheduleHours();
 
-    const days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-
-    hours.forEach(hour => {
+    hours.forEach(item => {
         const row = document.createElement('tr');
         const hourCell = document.createElement('td');
-        hourCell.textContent = hour;
+        hourCell.className = 'cell-hora';
+        hourCell.textContent = item.display;
         row.appendChild(hourCell);
 
-        days.forEach(day => {
+        SCHEDULE_DAYS.forEach(day => {
             const cell = document.createElement('td');
             const input = document.createElement('input');
             input.type = 'text';
+            input.className = 'schedule-cell-input';
             input.placeholder = '--';
-            input.dataset.day = day;
-            input.dataset.hour = hour;
+            input.dataset.day = day.key;
+            input.dataset.dbHour = item.dbHour;
+            input.dataset.display = item.display;
+
+            input.addEventListener('input', () => updateCellVisual(input));
+
             cell.appendChild(input);
             row.appendChild(cell);
         });
@@ -446,79 +478,11 @@ function generateScheduleTable() {
 }
 
 document.getElementById('btn-clear-schedule')?.addEventListener('click', () => {
-    document.querySelectorAll('#schedule-table input').forEach(i => i.value = '');
-    quizesList = [];
-    window.scheduleData = {};
-    renderQuizList();
-});
-
-document.getElementById('btn-generate-quizzes')?.addEventListener('click', () => {
-    const inputs = document.querySelectorAll('#schedule-table input');
-    const scheduleData = {};
-
-    inputs.forEach(input => {
-        const val = input.value.trim();
-        if (val) {
-            const day = input.dataset.day;
-            const hour = input.dataset.hour;
-            if (!scheduleData[day]) scheduleData[day] = [];
-            scheduleData[day].push({ hour, materia: val });
-        }
+    document.querySelectorAll('#schedule-table input.schedule-cell-input').forEach(i => {
+        i.value = '';
+        updateCellVisual(i);
     });
-
-    if (Object.keys(scheduleData).length === 0) {
-        alert("Escribe al menos una materia en la cuadrícula de horarios");
-        return;
-    }
-
-    window.scheduleData = scheduleData;
-    quizesList = [];
-    const dayLabels = { lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado' };
-
-    for (const d in scheduleData) {
-        scheduleData[d].forEach(cls => {
-            quizesList.push({ day: dayLabels[d] || d, hour: cls.hour, materia: cls.materia });
-        });
-    }
-
-    renderQuizList();
 });
-
-function renderQuizList() {
-    const list = document.getElementById('quizzes-list');
-    const noMsg = document.getElementById('no-quizzes-msg');
-    const count = document.getElementById('quizzes-count');
-
-    if (count) count.textContent = quizesList.length;
-    if (!list) return;
-
-    list.querySelectorAll('.quiz-card-item').forEach(c => c.remove());
-
-    if (quizesList.length === 0) {
-        if (noMsg) noMsg.style.display = 'block';
-        return;
-    }
-
-    if (noMsg) noMsg.style.display = 'none';
-
-    quizesList.forEach((q, index) => {
-        const card = document.createElement('div');
-        card.className = 'quiz-card-item';
-        card.innerHTML = `
-            <div class="quiz-card-info">
-                <span class="quiz-card-title">${q.day}: ${escapeHtml(q.materia)}</span>
-                <span class="quiz-card-time">🕐 ${q.hour}</span>
-            </div>
-            <button type="button" class="btn-remove-quiz" onclick="removeQuiz(${index})">✕</button>
-        `;
-        list.appendChild(card);
-    });
-}
-
-window.removeQuiz = (index) => {
-    quizesList.splice(index, 1);
-    renderQuizList();
-};
 
 // ==========================================
 // MODAL EDITOR DE HORARIO EXISTENTE
@@ -546,59 +510,81 @@ function buildEditScheduleTable(existingSchedule) {
     const tbody = document.getElementById('edit-schedule-table-body');
     tbody.innerHTML = '';
 
-    const hours = [];
-    for (let h = 6; h <= 22; h++) {
-        hours.push({
-            startH: h,
-            label: `${String(h).padStart(2, '0')}:00 - ${String(h + 1).padStart(2, '0')}:00`
-        });
-    }
-
-    const days = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+    const hours = getScheduleHours();
 
     hours.forEach(item => {
         const row = document.createElement('tr');
         const hourCell = document.createElement('td');
-        hourCell.textContent = item.label;
-        hourCell.style.fontWeight = "bold";
+        hourCell.className = 'cell-hora';
+        hourCell.textContent = item.display;
         row.appendChild(hourCell);
 
-        days.forEach(day => {
+        SCHEDULE_DAYS.forEach(day => {
             const cell = document.createElement('td');
             const input = document.createElement('input');
             input.type = 'text';
+            input.className = 'schedule-cell-input';
             input.placeholder = '--';
-            input.dataset.day = day;
-            input.dataset.hour = item.label;
+            input.dataset.day = day.key;
+            input.dataset.dbHour = item.dbHour;
+            input.dataset.display = item.display;
 
-            if (existingSchedule && existingSchedule[day]) {
-                const match = existingSchedule[day].find(cls => cls.hora.startsWith(String(item.startH).padStart(2, '0')));
-                if (match) input.value = match.asignatura;
+            // Buscar si ya tiene materia en este bloque
+            const dayList = existingSchedule ? (existingSchedule[day.key] || existingSchedule[day.key.normalize("NFD").replace(/[\u0300-\u036f]/g, "")]) : null;
+            if (Array.isArray(dayList)) {
+                const match = dayList.find(cls => {
+                    if (!cls || !cls.hora) return false;
+                    return cls.hora.startsWith(String(item.startH).padStart(2, '0')) ||
+                           cls.hora === item.display ||
+                           cls.hora === item.dbHour;
+                });
+                if (match && match.asignatura) {
+                    input.value = match.asignatura;
+                }
             }
 
+            input.addEventListener('input', () => {
+                updateCellVisual(input);
+                updateEditCounter();
+            });
+
+            updateCellVisual(input);
             cell.appendChild(input);
             row.appendChild(cell);
         });
 
         tbody.appendChild(row);
     });
+
+    updateEditCounter();
+}
+
+function updateEditCounter() {
+    const counterEl = document.getElementById('edit-schedule-counter');
+    if (!counterEl) return;
+    const filled = document.querySelectorAll('#edit-schedule-table input.schedule-cell-input.filled').length;
+    counterEl.textContent = `${filled} ${filled === 1 ? 'materia asignada' : 'materias asignadas'}`;
 }
 
 window.clearEditScheduleTable = () => {
-    document.querySelectorAll('#edit-schedule-table input').forEach(i => i.value = '');
+    document.querySelectorAll('#edit-schedule-table input.schedule-cell-input').forEach(i => {
+        i.value = '';
+        updateCellVisual(i);
+    });
+    updateEditCounter();
 };
 
 window.saveUserSchedule = async () => {
     if (!currentEditingUserId) return;
 
-    const inputs = document.querySelectorAll('#edit-schedule-table input');
+    const inputs = document.querySelectorAll('#edit-schedule-table input.schedule-cell-input');
     const schedule = {};
 
     inputs.forEach(input => {
         const val = input.value.trim();
         if (val) {
             const day = input.dataset.day;
-            const hour = input.dataset.hour;
+            const hour = input.dataset.dbHour;
             if (!schedule[day]) schedule[day] = [];
             schedule[day].push({ hora: hour, asignatura: val });
         }
