@@ -53,8 +53,6 @@ const cancelUserModal = document.getElementById('cancel-user-modal');
 
 let users = [];
 let currentFilter = 'all';
-let quizesList = [];
-window.scheduleData = {};
 
 // Mostrar mensajes
 function showMessage(elementId, message, type = '') {
@@ -310,9 +308,10 @@ radioSchedule.addEventListener('change', updateLicenseTypeUI);
 
 createUserBtn.addEventListener('click', () => {
     userModalForm.reset();
-    quizesList = [];
-    window.scheduleData = {};
-    renderQuizList();
+    document.querySelectorAll('#schedule-table input.schedule-cell-input').forEach(i => {
+        i.value = '';
+        updateCellVisual(i);
+    });
 
     radioTest.checked = true;
     updateLicenseTypeUI();
