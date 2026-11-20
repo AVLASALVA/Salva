@@ -63,6 +63,7 @@
                     <thead>
                         <tr>
                             <th>Usuario</th>
+                            <th>Contraseña</th>
                             <th>Plan</th>
                             <th>Expiración</th>
                             <th>Horario</th>
@@ -219,6 +220,32 @@
                     <button type="button" class="btn btn-primary" onclick="saveUserSchedule()" id="btn-save-schedule">💾 Guardar Horario</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Cambiar Contraseña -->
+    <div id="password-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 420px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                <h3 id="password-modal-title" style="margin: 0; font-size: 18px; color: #1e293b;">🔑 Modificar Contraseña</h3>
+                <button type="button" class="btn btn-secondary" onclick="closePasswordModal()" style="font-size: 16px; padding: 2px 8px; line-height: 1;">✕</button>
+            </div>
+            <form id="password-modal-form">
+                <input type="hidden" id="edit-pass-user-id">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="edit-pass-username" style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px;">Usuario</label>
+                    <input type="text" id="edit-pass-username" disabled style="width: 100%; padding: 8px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; cursor: not-allowed; font-weight: 600;">
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="edit-pass-newpass" style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px;">Nueva Contraseña</label>
+                    <input type="text" id="edit-pass-newpass" required placeholder="Ingresa la nueva contraseña" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div id="password-modal-message" class="message" style="margin-bottom: 12px;"></div>
+                <div class="modal-actions" style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closePasswordModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-password">💾 Guardar</button>
+                </div>
+            </form>
         </div>
     </div>
 

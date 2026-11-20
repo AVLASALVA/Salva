@@ -164,7 +164,7 @@ function renderUsers() {
     });
 
     if (filtered.length === 0) {
-        usersTableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias</td></tr>';
+        usersTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias</td></tr>';
         return;
     }
 
@@ -195,6 +195,7 @@ function renderUsers() {
         return `
             <tr>
                 <td><strong>${escapeHtml(u.usuario || '')}</strong></td>
+                <td>${renderPasswordCell(u)}</td>
                 <td><span class="badge">${escapeHtml(u.plan || 'Horario semanal')}</span></td>
                 <td>
                     ${formatDate(u.fecha_expiracion)}
@@ -274,6 +275,92 @@ window.deleteUser = async (id, username) => {
         alert("Error de conexión");
     }
 };
+
+// ==========================================
+// GESTIÓN DE CONTRASEÑA (VER Y MODIFICAR)
+// ==========================================
+
+function renderPasswordCell(u) {
+    const pass = escapeHtml(u.password || '');
+    return `
+        <div style="display:inline-flex; align-items:center; gap:5px;">
+            <span id="pass-display-${u.id}" data-masked="true" style="font-family:monospace; font-size:12px; background:#f8fafc; padding:3px 8px; border-radius:4px; border:1px solid #cbd5e1; min-width:70px; display:inline-block; text-align:center; color:#334155;">••••••••</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="togglePasswordVisibility('${u.id}', '${pass}')" title="Ver / Ocultar contraseña" style="padding:3px 6px; font-size:11px; cursor:pointer;">
+                👁️
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openPasswordModal('${u.id}', '${escapeHtml(u.usuario || '')}', '${pass}')" title="Modificar contraseña" style="padding:3px 6px; font-size:11px; cursor:pointer;">
+                ✏️
+            </button>
+        </div>
+    `;
+}
+
+window.togglePasswordVisibility = (id, actualPass) => {
+    const span = document.getElementById(`pass-display-${id}`);
+    if (!span) return;
+    const isMasked = span.dataset.masked === 'true';
+    if (isMasked) {
+        span.textContent = actualPass;
+        span.dataset.masked = 'false';
+        span.style.background = '#fef3c7';
+        span.style.color = '#92400e';
+        span.style.fontWeight = 'bold';
+    } else {
+        span.textContent = '••••••••';
+        span.dataset.masked = 'true';
+        span.style.background = '#f8fafc';
+        span.style.color = '#334155';
+        span.style.fontWeight = 'normal';
+    }
+};
+
+const passwordModal = document.getElementById('password-modal');
+const passwordModalForm = document.getElementById('password-modal-form');
+
+window.openPasswordModal = (id, username, currentPass) => {
+    document.getElementById('edit-pass-user-id').value = id;
+    document.getElementById('edit-pass-username').value = username;
+    const inputPass = document.getElementById('edit-pass-newpass');
+    inputPass.value = currentPass;
+    showMessage("password-modal-message", "", "");
+    passwordModal.classList.remove('hidden');
+    setTimeout(() => inputPass.focus(), 100);
+};
+
+window.closePasswordModal = () => {
+    passwordModal.classList.add('hidden');
+    passwordModalForm.reset();
+};
+
+passwordModalForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('edit-pass-user-id').value;
+    const newPass = document.getElementById('edit-pass-newpass').value.trim();
+
+    if (!newPass) {
+        showMessage("password-modal-message", "La contraseña no puede estar vacía", "error");
+        return;
+    }
+
+    showMessage("password-modal-message", "Guardando contraseña...", "");
+
+    try {
+        const { error } = await supabaseClient
+            .from('usuarios_app')
+            .update({ password: newPass, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (error) {
+            showMessage("password-modal-message", "Error al actualizar: " + error.message, "error");
+            return;
+        }
+
+        closePasswordModal();
+        await loadUsers();
+    } catch (err) {
+        showMessage("password-modal-message", "Error de conexión", "error");
+    }
+});
 
 searchInput.addEventListener('input', renderUsers);
 
