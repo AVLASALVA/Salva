@@ -53,6 +53,56 @@ const cancelUserModal = document.getElementById('cancel-user-modal');
 
 let users = [];
 let currentFilter = 'all';
+let activeSection = 'clientes';
+
+window.switchSectionTab = (section) => {
+    activeSection = section;
+    const tabClients = document.getElementById('tab-clients');
+    const tabTesting = document.getElementById('tab-testing');
+    if (tabClients && tabTesting) {
+        if (section === 'clientes') {
+            tabClients.classList.add('active');
+            tabTesting.classList.remove('active');
+        } else {
+            tabClients.classList.remove('active');
+            tabTesting.classList.add('active');
+        }
+    }
+    renderUsers();
+    updateStats();
+};
+
+function getUserSection(u) {
+    if (!u) return 'clientes';
+    if (u.usuario === 'paramostrarlealosclientes') return 'testeo';
+    if (u.horario_activacion && u.horario_activacion._seccion === 'testeo') return 'testeo';
+    return 'clientes';
+}
+
+function getUserPrice(u) {
+    if (!u || !u.horario_activacion) return 0;
+    const p = u.horario_activacion._precio;
+    return (p !== undefined && p !== null && !isNaN(p)) ? Number(p) : 0;
+}
+
+function formatCOP(num) {
+    if (num === undefined || num === null || isNaN(num)) return '$0 COP';
+    return '$' + Number(num).toLocaleString('es-CO') + ' COP';
+}
+
+function renderPriceCell(u) {
+    const price = getUserPrice(u);
+    const formatted = formatCOP(price);
+    const safeUser = escapeHtml(u.usuario || '');
+    return `
+        <div style="display:inline-flex; align-items:center; gap:5px;">
+            <span class="price-badge" style="font-family:monospace; font-size:12px;">${formatted}</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openPriceModal('${u.id}', '${safeUser}', ${price})" title="Modificar precio" style="padding:3px 6px; font-size:11px; cursor:pointer;">
+                ✏️
+            </button>
+        </div>
+    `;
+}
 
 // Mostrar mensajes
 function showMessage(elementId, message, type = '') {
@@ -150,8 +200,33 @@ async function loadUsers() {
 
 // Estadísticas
 function updateStats() {
+    const clientsCount = users.filter(u => getUserSection(u) === 'clientes').length;
+    const testingCount = users.filter(u => getUserSection(u) === 'testeo').length;
+
+    const countClientsEl = document.getElementById('count-clients');
+    const countTestingEl = document.getElementById('count-testing');
+    if (countClientsEl) countClientsEl.textContent = clientsCount;
+    if (countTestingEl) countTestingEl.textContent = testingCount;
+
     const totalEl = document.getElementById('stat-total');
-    if (totalEl) totalEl.textContent = users.length;
+    const titleEl = document.getElementById('stat-title-count');
+    const salesEl = document.getElementById('stat-sales');
+    const salesCardEl = document.getElementById('stat-sales-card');
+
+    if (activeSection === 'clientes') {
+        if (totalEl) totalEl.textContent = clientsCount;
+        if (titleEl) titleEl.textContent = 'Licencias Clientes';
+        if (salesCardEl) salesCardEl.style.display = 'block';
+
+        const totalVentas = users
+            .filter(u => getUserSection(u) === 'clientes')
+            .reduce((sum, u) => sum + getUserPrice(u), 0);
+        if (salesEl) salesEl.textContent = formatCOP(totalVentas);
+    } else {
+        if (totalEl) totalEl.textContent = testingCount;
+        if (titleEl) titleEl.textContent = 'Cuentas de Testeo';
+        if (salesCardEl) salesCardEl.style.display = 'none';
+    }
 }
 
 // Renderizado de usuarios
@@ -160,11 +235,13 @@ function renderUsers() {
     const now = new Date();
 
     let filtered = users.filter(u => {
-        return !searchTerm || (u.usuario && u.usuario.toLowerCase().includes(searchTerm));
+        const matchesSection = getUserSection(u) === activeSection;
+        const matchesSearch = !searchTerm || (u.usuario && u.usuario.toLowerCase().includes(searchTerm));
+        return matchesSection && matchesSearch;
     });
 
     if (filtered.length === 0) {
-        usersTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias</td></tr>';
+        usersTableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias en la sección ${activeSection === 'clientes' ? 'Clientes' : 'Testeo'}</td></tr>`;
         return;
     }
 
@@ -196,6 +273,7 @@ function renderUsers() {
             <tr>
                 <td><strong>${escapeHtml(u.usuario || '')}</strong></td>
                 <td>${renderPasswordCell(u)}</td>
+                <td>${renderPriceCell(u)}</td>
                 <td><span class="badge">${escapeHtml(u.plan || 'Horario semanal')}</span></td>
                 <td>
                     ${formatDate(u.fecha_expiracion)}
@@ -369,6 +447,61 @@ passwordModalForm?.addEventListener('submit', async (e) => {
     }
 });
 
+// ==========================================
+// GESTIÓN DE PRECIO (MODIFICAR PRECIO)
+// ==========================================
+const priceModal = document.getElementById('price-modal');
+const priceModalForm = document.getElementById('price-modal-form');
+
+window.openPriceModal = (id, username, currentPrice) => {
+    document.getElementById('edit-price-user-id').value = id;
+    document.getElementById('edit-price-username').value = username;
+    const inputPrice = document.getElementById('edit-price-val');
+    inputPrice.value = currentPrice || 0;
+    showMessage("price-modal-message", "", "");
+    priceModal.classList.remove('hidden');
+    setTimeout(() => inputPrice.focus(), 100);
+};
+
+window.closePriceModal = () => {
+    priceModal.classList.add('hidden');
+    priceModalForm.reset();
+};
+
+priceModalForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('edit-price-user-id').value;
+    const newPrice = Number(document.getElementById('edit-price-val').value) || 0;
+
+    const user = users.find(x => x.id === id);
+    if (!user) return;
+
+    const updatedHorario = { ...(user.horario_activacion || {}) };
+    updatedHorario._precio = newPrice;
+
+    showMessage("price-modal-message", "Guardando precio...", "");
+
+    try {
+        const { error } = await supabaseClient
+            .from('usuarios_app')
+            .update({
+                horario_activacion: updatedHorario,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+        if (error) {
+            showMessage("price-modal-message", "Error al actualizar precio: " + error.message, "error");
+            return;
+        }
+
+        closePriceModal();
+        await loadUsers();
+    } catch (err) {
+        showMessage("price-modal-message", "Error de conexión", "error");
+    }
+});
+
 searchInput.addEventListener('input', renderUsers);
 
 // ==========================================
@@ -407,6 +540,9 @@ createUserBtn.addEventListener('click', () => {
         updateCellVisual(i);
     });
 
+    const userSectionEl = document.getElementById('user-section');
+    if (userSectionEl) userSectionEl.value = activeSection;
+
     radioTest.checked = true;
     updateLicenseTypeUI();
 
@@ -424,6 +560,8 @@ userModalForm.addEventListener('submit', async (e) => {
 
     const username = document.getElementById('user-username').value.trim();
     const password = document.getElementById('user-password').value.trim();
+    const userSection = document.getElementById('user-section')?.value || 'clientes';
+    const userPrice = Number(document.getElementById('user-price')?.value) || 0;
 
     if (!username || !password) {
         showMessage("user-modal-message", "Ingresa usuario y contraseña", "error");
@@ -462,6 +600,9 @@ userModalForm.addEventListener('submit', async (e) => {
             return;
         }
     }
+
+    horario._precio = userPrice;
+    horario._seccion = userSection;
 
     showMessage("user-modal-message", "Creando licencia...", "");
 
@@ -712,6 +853,17 @@ window.saveUserSchedule = async () => {
             schedule[day].push({ hora: hour, asignatura: val });
         }
     });
+
+    // Preservar precio y sección existentes al guardar el horario
+    const existingUser = users.find(x => x.id === currentEditingUserId);
+    if (existingUser && existingUser.horario_activacion) {
+        if (existingUser.horario_activacion._precio !== undefined) {
+            schedule._precio = existingUser.horario_activacion._precio;
+        }
+        if (existingUser.horario_activacion._seccion !== undefined) {
+            schedule._seccion = existingUser.horario_activacion._seccion;
+        }
+    }
 
     try {
         const { error } = await supabaseClient

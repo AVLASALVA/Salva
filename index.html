@@ -46,11 +46,27 @@
         </header>
 
         <main class="dashboard-content">
-            <!-- Indicador único de Licencias -->
-            <div class="stats-row" style="grid-template-columns: 1fr;">
+            <!-- Pestañas de Secciones: Clientes vs Testeo -->
+            <div class="section-tabs-container">
+                <div class="section-tabs">
+                    <button type="button" class="tab-btn active" id="tab-clients" onclick="switchSectionTab('clientes')">
+                        👥 Clientes (<span id="count-clients">0</span>)
+                    </button>
+                    <button type="button" class="tab-btn" id="tab-testing" onclick="switchSectionTab('testeo')">
+                        🧪 Testeo (<span id="count-testing">0</span>)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Indicadores / Métricas -->
+            <div class="stats-row" id="stats-dashboard-row" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                 <div class="stat-card" id="stat-total-card">
-                    <h3>Licencias</h3>
+                    <h3 id="stat-title-count">Licencias Clientes</h3>
                     <p id="stat-total" class="stat-number">0</p>
+                </div>
+                <div class="stat-card" id="stat-sales-card" style="border-left: 4px solid #10b981;">
+                    <h3>Total Ventas (COP)</h3>
+                    <p id="stat-sales" class="stat-number" style="color: #059669; font-size: 26px;">$0 COP</p>
                 </div>
             </div>
 
@@ -65,6 +81,7 @@
                         <tr>
                             <th>Usuario</th>
                             <th>Contraseña</th>
+                            <th>Precio</th>
                             <th>Plan</th>
                             <th>Expiración</th>
                             <th>Horario</th>
@@ -86,6 +103,19 @@
         <div class="modal-content" style="max-width: 1050px; width: 95%; max-height: 92vh;">
             <h2>Nueva Licencia</h2>
             <form id="user-modal-form">
+                <div class="form-row-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="user-section">Sección / Tipo de Cuenta</label>
+                        <select id="user-section" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; font-weight: 500;">
+                            <option value="clientes" selected>👥 Clientes (Licencia Vendida)</option>
+                            <option value="testeo">🧪 Testeo (Prueba / Demo)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="user-price">Precio de Venta (COP)</label>
+                        <input type="number" id="user-price" placeholder="Ej: 60000" min="0" step="1000" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
+                    </div>
+                </div>
                 <div class="form-group">
                     <label for="user-username">Usuario</label>
                     <input type="text" id="user-username" required placeholder="nombre_usuario">
@@ -253,6 +283,32 @@
                 <div class="modal-actions" style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
                     <button type="button" class="btn btn-secondary" onclick="closePasswordModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary" id="btn-save-password">💾 Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Modificar Precio -->
+    <div id="price-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 420px; width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                <h3 id="price-modal-title" style="margin: 0; font-size: 18px; color: #1e293b;">💲 Modificar Precio</h3>
+                <button type="button" class="btn btn-secondary" onclick="closePriceModal()" style="font-size: 16px; padding: 2px 8px; line-height: 1;">✕</button>
+            </div>
+            <form id="price-modal-form">
+                <input type="hidden" id="edit-price-user-id">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="edit-price-username" style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px;">Usuario</label>
+                    <input type="text" id="edit-price-username" disabled style="width: 100%; padding: 8px 12px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; cursor: not-allowed; font-weight: 600;">
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="edit-price-val" style="display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px;">Precio de la Licencia (COP)</label>
+                    <input type="number" id="edit-price-val" min="0" step="1000" required placeholder="Ej: 60000" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div id="price-modal-message" class="message" style="margin-bottom: 12px;"></div>
+                <div class="modal-actions" style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closePriceModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-price">💾 Guardar Precio</button>
                 </div>
             </form>
         </div>
