@@ -977,6 +977,7 @@ tr:hover {
     box-sizing: border-box;
     display: block;
     line-height: 1.25;
+    text-transform: uppercase !important;
 }
 
 .schedule-table .schedule-cell-input::placeholder {

@@ -217,11 +217,18 @@ function renderUsers() {
 
 function countTotalClasses(horario) {
     if (!horario || typeof horario !== 'object') return 0;
-    let count = 0;
+    const unique = new Set();
     for (const day in horario) {
-        if (Array.isArray(horario[day])) count += horario[day].length;
+        if (Array.isArray(horario[day])) {
+            horario[day].forEach(cls => {
+                if (cls && cls.asignatura) {
+                    const name = cls.asignatura.trim().toUpperCase();
+                    if (name) unique.add(name);
+                }
+            });
+        }
     }
-    return count;
+    return unique.size;
 }
 
 function renderScheduleCell(u, totalClasses) {
@@ -441,7 +448,7 @@ userModalForm.addEventListener('submit', async (e) => {
         horario = {};
 
         inputs.forEach(input => {
-            const val = input.value.trim();
+            const val = input.value.trim().toUpperCase();
             if (val) {
                 const day = input.dataset.day;
                 const dbHour = input.dataset.dbHour;
@@ -518,6 +525,9 @@ function getScheduleHours() {
 }
 
 function updateCellVisual(input) {
+    if (input.value) {
+        input.value = input.value.toUpperCase();
+    }
     const td = input.closest('td');
     if (input.value && input.value.trim() !== '') {
         input.classList.add('filled');
@@ -553,7 +563,11 @@ function generateScheduleTable() {
             input.dataset.dbHour = item.dbHour;
             input.dataset.display = item.display;
 
-            input.addEventListener('input', () => updateCellVisual(input));
+            input.addEventListener('input', () => {
+                input.value = input.value.toUpperCase();
+                updateCellVisual(input);
+                updateCreateCounter();
+            });
 
             cell.appendChild(input);
             row.appendChild(cell);
@@ -561,6 +575,21 @@ function generateScheduleTable() {
 
         tbody.appendChild(row);
     });
+
+    updateCreateCounter();
+}
+
+function updateCreateCounter() {
+    const counterEl = document.getElementById('create-schedule-counter');
+    if (!counterEl) return;
+    const inputs = document.querySelectorAll('#schedule-table input.schedule-cell-input');
+    const unique = new Set();
+    inputs.forEach(input => {
+        const val = input.value.trim().toUpperCase();
+        if (val) unique.add(val);
+    });
+    const count = unique.size;
+    counterEl.textContent = `${count} ${count === 1 ? 'materia asignada' : 'materias asignadas'}`;
 }
 
 document.getElementById('btn-clear-schedule')?.addEventListener('click', () => {
@@ -568,6 +597,7 @@ document.getElementById('btn-clear-schedule')?.addEventListener('click', () => {
         i.value = '';
         updateCellVisual(i);
     });
+    updateCreateCounter();
 });
 
 // ==========================================
@@ -625,11 +655,12 @@ function buildEditScheduleTable(existingSchedule) {
                            cls.hora === item.dbHour;
                 });
                 if (match && match.asignatura) {
-                    input.value = match.asignatura;
+                    input.value = match.asignatura.toUpperCase();
                 }
             }
 
             input.addEventListener('input', () => {
+                input.value = input.value.toUpperCase();
                 updateCellVisual(input);
                 updateEditCounter();
             });
@@ -648,8 +679,14 @@ function buildEditScheduleTable(existingSchedule) {
 function updateEditCounter() {
     const counterEl = document.getElementById('edit-schedule-counter');
     if (!counterEl) return;
-    const filled = document.querySelectorAll('#edit-schedule-table input.schedule-cell-input.filled').length;
-    counterEl.textContent = `${filled} ${filled === 1 ? 'materia asignada' : 'materias asignadas'}`;
+    const inputs = document.querySelectorAll('#edit-schedule-table input.schedule-cell-input');
+    const unique = new Set();
+    inputs.forEach(input => {
+        const val = input.value.trim().toUpperCase();
+        if (val) unique.add(val);
+    });
+    const count = unique.size;
+    counterEl.textContent = `${count} ${count === 1 ? 'materia asignada' : 'materias asignadas'}`;
 }
 
 window.clearEditScheduleTable = () => {
@@ -667,7 +704,7 @@ window.saveUserSchedule = async () => {
     const schedule = {};
 
     inputs.forEach(input => {
-        const val = input.value.trim();
+        const val = input.value.trim().toUpperCase();
         if (val) {
             const day = input.dataset.day;
             const hour = input.dataset.dbHour;
