@@ -734,6 +734,123 @@ window.saveUserSchedule = async () => {
     }
 };
 
+// ==========================================
+// CAPTURA / FOTO DEL HORARIO (HTML2CANVAS)
+// ==========================================
+
+window.downloadSchedulePhoto = async () => {
+    const card = document.querySelector('#schedule-modal .schedule-table-card');
+    if (!card) return;
+
+    if (typeof html2canvas === 'undefined') {
+        alert("La librería de captura aún está cargando. Intenta de nuevo en unos segundos.");
+        return;
+    }
+
+    const btn = document.getElementById('btn-screenshot-schedule');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) btn.innerHTML = '⏳ Generando...';
+
+    try {
+        // Clonar la tarjeta fuera de pantalla para renderizarla completa y sin barras de scroll
+        const clone = card.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.top = '-99999px';
+        clone.style.left = '-99999px';
+        clone.style.width = '1000px';
+        clone.style.maxHeight = 'none';
+        clone.style.height = 'auto';
+        clone.style.zIndex = '-1000';
+        clone.style.background = '#ffffff';
+
+        // Remover botones dentro del banner del clon para que salga limpia
+        clone.querySelectorAll('button').forEach(b => b.remove());
+
+        const cloneContainer = clone.querySelector('.schedule-table-container');
+        if (cloneContainer) {
+            cloneContainer.style.maxHeight = 'none';
+            cloneContainer.style.overflow = 'visible';
+            cloneContainer.style.height = 'auto';
+            cloneContainer.style.border = 'none';
+        }
+
+        // Reemplazar inputs por divs con texto nítido en el clon
+        const originalInputs = card.querySelectorAll('input.schedule-cell-input');
+        const cloneInputs = clone.querySelectorAll('input.schedule-cell-input');
+        cloneInputs.forEach((clonedInput, index) => {
+            const orig = originalInputs[index];
+            const val = orig ? orig.value.trim().toUpperCase() : '';
+            const parentTd = clonedInput.closest('td');
+
+            const div = document.createElement('div');
+            div.style.width = '100%';
+            div.style.minHeight = '46px';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'center';
+            div.style.padding = '4px';
+            div.style.fontSize = '11px';
+            div.style.fontWeight = 'bold';
+            div.style.lineHeight = '1.2';
+            div.style.textAlign = 'center';
+
+            if (val) {
+                div.textContent = val;
+                div.style.color = '#801424';
+                div.style.backgroundColor = '#E8EEF7';
+                if (parentTd) parentTd.style.backgroundColor = '#E8EEF7';
+            } else {
+                div.textContent = '--';
+                div.style.color = '#cbd5e1';
+                div.style.fontWeight = 'normal';
+                if (parentTd) parentTd.style.backgroundColor = '#ffffff';
+            }
+            clonedInput.parentNode.replaceChild(div, clonedInput);
+        });
+
+        // Título personalizado con el nombre del usuario
+        const username = document.getElementById('schedule-modal-title')?.textContent?.replace('📅 Horario:', '')?.trim() || 'Alumno';
+        const cloneBannerTitle = clone.querySelector('.schedule-table-banner span');
+        if (cloneBannerTitle) {
+            cloneBannerTitle.textContent = `📚 Horario de Clases - ${username}`;
+        }
+
+        document.body.appendChild(clone);
+
+        // Captura con html2canvas en escala 2 (alta resolución)
+        const canvas = await html2canvas(clone, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            windowWidth: 1024
+        });
+
+        document.body.removeChild(clone);
+
+        // 1. Descargar imagen PNG
+        const image = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `Horario_${username.replace(/[^a-zA-Z0-9_-]/g, '_')}.png`;
+        link.href = image;
+        link.click();
+
+        // 2. Intentar copiar al portapapeles para pegar directo en WhatsApp/Telegram (Ctrl + V)
+        if (navigator.clipboard && window.ClipboardItem) {
+            canvas.toBlob(blob => {
+                if (blob) {
+                    navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).catch(() => {});
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error generando foto:', err);
+        alert('Error generando la foto del horario: ' + err.message);
+    } finally {
+        if (btn) btn.innerHTML = originalText;
+    }
+};
+
 // Utilidades
 function escapeHtml(text) {
     const div = document.createElement('div');
