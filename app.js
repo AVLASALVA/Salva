@@ -59,14 +59,11 @@ window.switchSectionTab = (section) => {
     activeSection = section;
     const tabClients = document.getElementById('tab-clients');
     const tabTesting = document.getElementById('tab-testing');
+    const tabVip = document.getElementById('tab-vip');
     if (tabClients && tabTesting) {
-        if (section === 'clientes') {
-            tabClients.classList.add('active');
-            tabTesting.classList.remove('active');
-        } else {
-            tabClients.classList.remove('active');
-            tabTesting.classList.add('active');
-        }
+        tabClients.classList.toggle('active', section === 'clientes');
+        tabTesting.classList.toggle('active', section === 'testeo');
+        if (tabVip) tabVip.classList.toggle('active', section === 'vip');
     }
     renderUsers();
     updateStats();
@@ -74,8 +71,9 @@ window.switchSectionTab = (section) => {
 
 function getUserSection(u) {
     if (!u) return 'clientes';
-    if (u.usuario === 'paramostrarlealosclientes') return 'testeo';
-    if (u.horario_activacion && u.horario_activacion._seccion === 'testeo') return 'testeo';
+    const sec = u.horario_activacion?._seccion;
+    if (sec === 'vip' || (u.plan && u.plan.toLowerCase().includes('vip'))) return 'vip';
+    if (sec === 'testeo' || u.usuario === 'paramostrarlealosclientes') return 'testeo';
     return 'clientes';
 }
 
@@ -251,11 +249,14 @@ async function loadUsers() {
 function updateStats() {
     const clientsCount = users.filter(u => getUserSection(u) === 'clientes').length;
     const testingCount = users.filter(u => getUserSection(u) === 'testeo').length;
+    const vipCount = users.filter(u => getUserSection(u) === 'vip').length;
 
     const countClientsEl = document.getElementById('count-clients');
     const countTestingEl = document.getElementById('count-testing');
+    const countVipEl = document.getElementById('count-vip');
     if (countClientsEl) countClientsEl.textContent = clientsCount;
     if (countTestingEl) countTestingEl.textContent = testingCount;
+    if (countVipEl) countVipEl.textContent = vipCount;
 
     const totalEl = document.getElementById('stat-total');
     const titleEl = document.getElementById('stat-title-count');
@@ -281,6 +282,12 @@ function updateStats() {
         if (salesEl) salesEl.textContent = formatCOP(totalVentas);
         if (paidEl) paidEl.textContent = formatCOP(totalPagado);
         if (pendingEl) pendingEl.textContent = formatCOP(totalPendiente);
+    } else if (activeSection === 'vip') {
+        if (totalEl) totalEl.textContent = vipCount;
+        if (titleEl) titleEl.textContent = 'Licencias VIP 💎';
+        if (salesCardEl) salesCardEl.style.display = 'none';
+        if (paidCardEl) paidCardEl.style.display = 'none';
+        if (pendingCardEl) pendingCardEl.style.display = 'none';
     } else {
         if (totalEl) totalEl.textContent = testingCount;
         if (titleEl) titleEl.textContent = 'Cuentas de Testeo';
@@ -302,7 +309,8 @@ function renderUsers() {
     });
 
     if (filtered.length === 0) {
-        usersTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias en la sección ${activeSection === 'clientes' ? 'Clientes' : 'Testeo'}</td></tr>`;
+        const secLabel = activeSection === 'clientes' ? 'Clientes' : (activeSection === 'vip' ? 'VIP 💎' : 'Testeo');
+        usersTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias en la sección ${secLabel}</td></tr>`;
         return;
     }
 
@@ -316,7 +324,7 @@ function renderUsers() {
         if (isExpired) {
             statusBadge = '<span class="badge expired">Expirada</span>';
         } else if (u.estado === 'activo') {
-            if (!esPrueba15Min && totalClasses === 0) {
+            if (!esPrueba15Min && totalClasses === 0 && getUserSection(u) !== 'vip') {
                 statusBadge = '<span class="badge" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;">⚠️ Sin horario</span>';
             } else {
                 statusBadge = '<span class="badge active">✅ Activa</span>';
@@ -327,7 +335,10 @@ function renderUsers() {
 
         const isOnline = u.device_id && u.ultimo_latido && (now - new Date(u.ultimo_latido)) < 70 * 1000;
         const sessionCell = isOnline
-            ? `<span class="badge active" style="font-size:11px;">🟢 En línea</span>`
+            ? `<div style="display:inline-flex; align-items:center; gap:5px;">
+                <span class="badge active" style="font-size:11px;">🟢 En línea</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="liberarSesionUsuario('${u.id}', '${escapeHtml(u.usuario || '')}')" title="Desconectar y liberar sesión inmediatamente" style="padding:2px 5px; font-size:10px; cursor:pointer;">🔄 Liberar</button>
+               </div>`
             : `<span class="badge inactive" style="opacity:0.7; font-size:11px;">⚪ Libre</span>`;
 
         return `
@@ -355,6 +366,30 @@ function renderUsers() {
     }).join('');
 }
 
+// Liberar sesión activa de un usuario
+window.liberarSesionUsuario = async (id, username) => {
+    if (!confirm(`¿Deseas liberar la sesión de "${username}" para que pueda volver a iniciar sesión o marcarse como libre?`)) return;
+
+    try {
+        const { error } = await supabaseClient
+            .from('usuarios_app')
+            .update({
+                device_id: null,
+                ultimo_latido: null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+        if (error) {
+            alert("Error al liberar sesión: " + error.message);
+        } else {
+            await loadUsers();
+        }
+    } catch (e) {
+        alert("Error de conexión al liberar sesión");
+    }
+};
+
 function countTotalClasses(horario) {
     if (!horario || typeof horario !== 'object') return 0;
     const unique = new Set();
@@ -372,6 +407,10 @@ function countTotalClasses(horario) {
 }
 
 function renderScheduleCell(u, totalClasses) {
+    const isVip = getUserSection(u) === 'vip' || (u.plan && u.plan.toLowerCase().includes('vip'));
+    if (isVip) {
+        return `<span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #93c5fd; font-weight:700; font-size:11px; padding:4px 8px;">💎 Ilimitado (24/7)</span>`;
+    }
     const esPrueba15Min = u.plan && u.plan.toLowerCase().includes('minuto');
     if (totalClasses > 0) {
         return `
@@ -567,33 +606,63 @@ priceModalForm?.addEventListener('submit', async (e) => {
 searchInput.addEventListener('input', renderUsers);
 
 // ==========================================
-// MODAL CREAR LICENCIA: 15 MIN O HORARIO SEMANAL
+// MODAL CREAR LICENCIA: 15 MIN, HORARIO SEMANAL O VIP
 // ==========================================
 
 const radioTest = document.getElementById('radio-type-test');
 const radioSchedule = document.getElementById('radio-type-schedule');
+const radioVip = document.getElementById('radio-type-vip');
 const cardTest = document.getElementById('card-type-test');
 const cardSchedule = document.getElementById('card-type-schedule');
+const cardVip = document.getElementById('card-type-vip');
 const testBox = document.getElementById('test-info-box');
+const vipBox = document.getElementById('vip-info-box');
 const scheduleSection = document.getElementById('schedule-quizzes-section');
 
 function updateLicenseTypeUI() {
-    if (radioTest.checked) {
-        cardTest.classList.add('active');
-        cardSchedule.classList.remove('active');
-        testBox.classList.remove('hidden');
-        scheduleSection.classList.add('hidden');
+    if (radioTest && radioTest.checked) {
+        if (cardTest) cardTest.classList.add('active');
+        if (cardSchedule) cardSchedule.classList.remove('active');
+        if (cardVip) cardVip.classList.remove('active');
+        if (testBox) testBox.classList.remove('hidden');
+        if (vipBox) vipBox.classList.add('hidden');
+        if (scheduleSection) scheduleSection.classList.add('hidden');
+    } else if (radioVip && radioVip.checked) {
+        if (cardTest) cardTest.classList.remove('active');
+        if (cardSchedule) cardSchedule.classList.remove('active');
+        if (cardVip) cardVip.classList.add('active');
+        if (testBox) testBox.classList.add('hidden');
+        if (vipBox) vipBox.classList.remove('hidden');
+        if (scheduleSection) scheduleSection.classList.add('hidden');
+
+        // Valores automáticos para VIP
+        const userPriceEl = document.getElementById('user-price');
+        if (userPriceEl) userPriceEl.value = '0';
+        const userPaymentEl = document.getElementById('user-payment');
+        if (userPaymentEl) userPaymentEl.value = 'pago';
+        const userSectionEl = document.getElementById('user-section');
+        if (userSectionEl && userSectionEl.value !== 'vip') userSectionEl.value = 'vip';
     } else {
-        cardTest.classList.remove('active');
-        cardSchedule.classList.add('active');
-        testBox.classList.add('hidden');
-        scheduleSection.classList.remove('hidden');
+        if (cardTest) cardTest.classList.remove('active');
+        if (cardSchedule) cardSchedule.classList.add('active');
+        if (cardVip) cardVip.classList.remove('active');
+        if (testBox) testBox.classList.add('hidden');
+        if (vipBox) vipBox.classList.add('hidden');
+        if (scheduleSection) scheduleSection.classList.remove('hidden');
         generateScheduleTable();
     }
 }
 
-radioTest.addEventListener('change', updateLicenseTypeUI);
-radioSchedule.addEventListener('change', updateLicenseTypeUI);
+if (radioTest) radioTest.addEventListener('change', updateLicenseTypeUI);
+if (radioSchedule) radioSchedule.addEventListener('change', updateLicenseTypeUI);
+if (radioVip) radioVip.addEventListener('change', updateLicenseTypeUI);
+
+document.getElementById('user-section')?.addEventListener('change', (e) => {
+    if (e.target.value === 'vip' && radioVip) {
+        radioVip.checked = true;
+        updateLicenseTypeUI();
+    }
+});
 
 createUserBtn.addEventListener('click', () => {
     userModalForm.reset();
@@ -608,7 +677,13 @@ createUserBtn.addEventListener('click', () => {
     const userPaymentEl = document.getElementById('user-payment');
     if (userPaymentEl) userPaymentEl.value = 'pago';
 
-    radioTest.checked = true;
+    if (activeSection === 'vip') {
+        if (radioVip) radioVip.checked = true;
+        const userPriceEl = document.getElementById('user-price');
+        if (userPriceEl) userPriceEl.value = '0';
+    } else {
+        if (radioTest) radioTest.checked = true;
+    }
     updateLicenseTypeUI();
 
     userModal.classList.remove('hidden');
@@ -644,6 +719,13 @@ userModalForm.addEventListener('submit', async (e) => {
         planNombre = '15 minutos (Prueba)';
         expiracion = new Date(Date.now() + 15 * 60 * 1000);
         horario = {};
+    } else if (licenseType === 'vip' || userSection === 'vip') {
+        planNombre = 'VIP Ilimitado (24/7)';
+        expiracion = new Date('2099-12-31T23:59:59Z');
+        horario = {};
+        SCHEDULE_DAYS.forEach(day => {
+            horario[day.key] = [{ hora: '00:00 - 24:00', asignatura: 'VIP ILIMITADO' }];
+        });
     } else {
         planNombre = 'Horario semanal';
         expiracion.setFullYear(expiracion.getFullYear() + 1);

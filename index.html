@@ -55,6 +55,9 @@
                     <button type="button" class="tab-btn" id="tab-testing" onclick="switchSectionTab('testeo')">
                         🧪 Testeo (<span id="count-testing">0</span>)
                     </button>
+                    <button type="button" class="tab-btn" id="tab-vip" onclick="switchSectionTab('vip')">
+                        💎 Vip (<span id="count-vip">0</span>)
+                    </button>
                 </div>
             </div>
 
@@ -118,6 +121,7 @@
                         <select id="user-section" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; font-weight: 500;">
                             <option value="clientes" selected>👥 Clientes</option>
                             <option value="testeo">🧪 Testeo</option>
+                            <option value="vip">💎 Vip</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
@@ -141,7 +145,7 @@
                     <input type="text" id="user-password" required placeholder="contraseña">
                 </div>
 
-                <!-- Selector de Tipo de Licencia: Solo 15 min o Horario Semanal -->
+                <!-- Selector de Tipo de Licencia: Prueba 15 min, Horario Semanal o VIP Ilimitada -->
                 <div class="form-group">
                     <label>Tipo de Licencia</label>
                     <div class="license-type-selector">
@@ -161,6 +165,14 @@
                                 <small>Todas las semanas según horario</small>
                             </div>
                         </label>
+                        <label class="license-type-card" id="card-type-vip">
+                            <input type="radio" name="license-type-radio" id="radio-type-vip" value="vip">
+                            <div class="type-card-content">
+                                <span class="type-icon">💎</span>
+                                <strong>VIP Ilimitada (24/7)</strong>
+                                <small>Sin horarios, activa siempre</small>
+                            </div>
+                        </label>
                     </div>
                 </div>
 
@@ -168,6 +180,12 @@
                 <div id="test-info-box" class="info-callout">
                     <p>⚡ <strong>Prueba Rápida de 15 Minutos</strong></p>
                     <small>La licencia se activa al instante y es válida por 15 minutos sin restricción de días ni horas.</small>
+                </div>
+
+                <!-- Opción 3: Info VIP Ilimitada -->
+                <div id="vip-info-box" class="info-callout hidden" style="background: #f0fdf4; border-color: #86efac;">
+                    <p style="color: #15803d;">💎 <strong>Licencia VIP Ilimitada 24/7</strong></p>
+                    <small style="color: #166534;">Esta licencia es ilimitada y permanente. No requiere materias ni horarios; se puede usar a cualquier hora, cualquier día y no vence.</small>
                 </div>
 
                 <!-- Opción 2: Horario de Clases Semanal -->
