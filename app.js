@@ -264,7 +264,7 @@ function renderUsers() {
             statusBadge = '<span class="badge inactive">❌ Inactiva</span>';
         }
 
-        const isOnline = u.ultimo_latido && (now - new Date(u.ultimo_latido)) < 70 * 1000;
+        const isOnline = u.device_id && u.ultimo_latido && (now - new Date(u.ultimo_latido)) < 70 * 1000;
         const sessionCell = isOnline
             ? `<span class="badge active" style="font-size:11px;">🟢 En línea</span>`
             : `<span class="badge inactive" style="opacity:0.7; font-size:11px;">⚪ Libre</span>`;
@@ -615,7 +615,9 @@ userModalForm.addEventListener('submit', async (e) => {
                 plan: planNombre,
                 fecha_expiracion: expiracion.toISOString(),
                 horario_activacion: horario,
-                estado: 'activo'
+                estado: 'activo',
+                ultimo_latido: null,
+                device_id: null
             });
 
         if (error) {
