@@ -1231,3 +1231,49 @@ tr:hover {
     font-size: 12px;
 }
 
+/* ==========================================
+   BOTÓN ESTADO DE PAGO (PAGÓ / NO PAGÓ)
+   ========================================== */
+.btn-pago-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 13px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+}
+
+.btn-pago-toggle.pago {
+    background-color: #16a34a;
+    color: #ffffff;
+}
+
+.btn-pago-toggle.pago:hover {
+    background-color: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(22, 163, 74, 0.35);
+}
+
+.btn-pago-toggle.no-pago {
+    background-color: #dc2626;
+    color: #ffffff;
+}
+
+.btn-pago-toggle.no-pago:hover {
+    background-color: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(220, 38, 38, 0.35);
+}
+
+.btn-pago-toggle:active {
+    transform: translateY(0);
+}
+
+

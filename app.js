@@ -104,6 +104,55 @@ function renderPriceCell(u) {
     `;
 }
 
+function getUserPayment(u) {
+    if (!u || !u.horario_activacion) return false;
+    const p = u.horario_activacion._pago;
+    return p === 'pago' || p === true;
+}
+
+function renderPaymentCell(u) {
+    const isPaid = getUserPayment(u);
+    return `
+        <button type="button" class="btn-pago-toggle ${isPaid ? 'pago' : 'no-pago'}" onclick="togglePaymentStatus('${u.id}')" title="Clic para alternar estado de pago">
+            ${isPaid ? '🟢 Pagó' : '🔴 No pagó'}
+        </button>
+    `;
+}
+
+window.togglePaymentStatus = async (id) => {
+    const user = users.find(x => x.id === id);
+    if (!user) return;
+
+    const currentPaid = getUserPayment(user);
+    const newPaidStatus = currentPaid ? 'no_pago' : 'pago';
+
+    const updatedHorario = { ...(user.horario_activacion || {}) };
+    updatedHorario._pago = newPaidStatus;
+
+    // Actualización visual inmediata
+    user.horario_activacion = updatedHorario;
+    renderUsers();
+    updateStats();
+
+    try {
+        const { error } = await supabaseClient
+            .from('usuarios_app')
+            .update({
+                horario_activacion: updatedHorario,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+        if (error) {
+            alert("Error actualizando estado de pago: " + error.message);
+            await loadUsers();
+        }
+    } catch (e) {
+        alert("Error de conexión al actualizar pago");
+        await loadUsers();
+    }
+};
+
 // Mostrar mensajes
 function showMessage(elementId, message, type = '') {
     const element = document.getElementById(elementId);
@@ -212,20 +261,32 @@ function updateStats() {
     const titleEl = document.getElementById('stat-title-count');
     const salesEl = document.getElementById('stat-sales');
     const salesCardEl = document.getElementById('stat-sales-card');
+    const paidEl = document.getElementById('stat-paid');
+    const pendingEl = document.getElementById('stat-pending');
+    const paidCardEl = document.getElementById('stat-paid-card');
+    const pendingCardEl = document.getElementById('stat-pending-card');
 
     if (activeSection === 'clientes') {
         if (totalEl) totalEl.textContent = clientsCount;
         if (titleEl) titleEl.textContent = 'Licencias Clientes';
         if (salesCardEl) salesCardEl.style.display = 'block';
+        if (paidCardEl) paidCardEl.style.display = 'block';
+        if (pendingCardEl) pendingCardEl.style.display = 'block';
 
-        const totalVentas = users
-            .filter(u => getUserSection(u) === 'clientes')
-            .reduce((sum, u) => sum + getUserPrice(u), 0);
+        const clientUsers = users.filter(u => getUserSection(u) === 'clientes');
+        const totalVentas = clientUsers.reduce((sum, u) => sum + getUserPrice(u), 0);
+        const totalPagado = clientUsers.filter(u => getUserPayment(u)).reduce((sum, u) => sum + getUserPrice(u), 0);
+        const totalPendiente = clientUsers.filter(u => !getUserPayment(u)).reduce((sum, u) => sum + getUserPrice(u), 0);
+
         if (salesEl) salesEl.textContent = formatCOP(totalVentas);
+        if (paidEl) paidEl.textContent = formatCOP(totalPagado);
+        if (pendingEl) pendingEl.textContent = formatCOP(totalPendiente);
     } else {
         if (totalEl) totalEl.textContent = testingCount;
         if (titleEl) titleEl.textContent = 'Cuentas de Testeo';
         if (salesCardEl) salesCardEl.style.display = 'none';
+        if (paidCardEl) paidCardEl.style.display = 'none';
+        if (pendingCardEl) pendingCardEl.style.display = 'none';
     }
 }
 
@@ -241,7 +302,7 @@ function renderUsers() {
     });
 
     if (filtered.length === 0) {
-        usersTableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias en la sección ${activeSection === 'clientes' ? 'Clientes' : 'Testeo'}</td></tr>`;
+        usersTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias en la sección ${activeSection === 'clientes' ? 'Clientes' : 'Testeo'}</td></tr>`;
         return;
     }
 
@@ -274,6 +335,7 @@ function renderUsers() {
                 <td><strong>${escapeHtml(u.usuario || '')}</strong></td>
                 <td>${renderPasswordCell(u)}</td>
                 <td>${renderPriceCell(u)}</td>
+                <td>${renderPaymentCell(u)}</td>
                 <td><span class="badge">${escapeHtml(u.plan || 'Horario semanal')}</span></td>
                 <td>
                     ${formatDate(u.fecha_expiracion)}
@@ -543,6 +605,9 @@ createUserBtn.addEventListener('click', () => {
     const userSectionEl = document.getElementById('user-section');
     if (userSectionEl) userSectionEl.value = activeSection;
 
+    const userPaymentEl = document.getElementById('user-payment');
+    if (userPaymentEl) userPaymentEl.value = 'pago';
+
     radioTest.checked = true;
     updateLicenseTypeUI();
 
@@ -562,6 +627,7 @@ userModalForm.addEventListener('submit', async (e) => {
     const password = document.getElementById('user-password').value.trim();
     const userSection = document.getElementById('user-section')?.value || 'clientes';
     const userPrice = Number(document.getElementById('user-price')?.value) || 0;
+    const userPayment = document.getElementById('user-payment')?.value || 'pago';
 
     if (!username || !password) {
         showMessage("user-modal-message", "Ingresa usuario y contraseña", "error");
@@ -603,6 +669,7 @@ userModalForm.addEventListener('submit', async (e) => {
 
     horario._precio = userPrice;
     horario._seccion = userSection;
+    horario._pago = userPayment;
 
     showMessage("user-modal-message", "Creando licencia...", "");
 
@@ -864,6 +931,9 @@ window.saveUserSchedule = async () => {
         }
         if (existingUser.horario_activacion._seccion !== undefined) {
             schedule._seccion = existingUser.horario_activacion._seccion;
+        }
+        if (existingUser.horario_activacion._pago !== undefined) {
+            schedule._pago = existingUser.horario_activacion._pago;
         }
     }
 

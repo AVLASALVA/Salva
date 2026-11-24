@@ -59,14 +59,22 @@
             </div>
 
             <!-- Indicadores / Métricas -->
-            <div class="stats-row" id="stats-dashboard-row" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            <div class="stats-row" id="stats-dashboard-row" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
                 <div class="stat-card" id="stat-total-card">
                     <h3 id="stat-title-count">Licencias Clientes</h3>
                     <p id="stat-total" class="stat-number">0</p>
                 </div>
                 <div class="stat-card" id="stat-sales-card" style="border-left: 4px solid #10b981;">
                     <h3>Total Ventas (COP)</h3>
-                    <p id="stat-sales" class="stat-number" style="color: #059669; font-size: 26px;">$0 COP</p>
+                    <p id="stat-sales" class="stat-number" style="color: #059669; font-size: 24px;">$0 COP</p>
+                </div>
+                <div class="stat-card" id="stat-paid-card" style="border-left: 4px solid #16a34a;">
+                    <h3>Recaudado (Pagó)</h3>
+                    <p id="stat-paid" class="stat-number" style="color: #16a34a; font-size: 24px;">$0 COP</p>
+                </div>
+                <div class="stat-card" id="stat-pending-card" style="border-left: 4px solid #dc2626;">
+                    <h3>Por Cobrar (No pagó)</h3>
+                    <p id="stat-pending" class="stat-number" style="color: #dc2626; font-size: 24px;">$0 COP</p>
                 </div>
             </div>
 
@@ -82,6 +90,7 @@
                             <th>Usuario</th>
                             <th>Contraseña</th>
                             <th>Precio</th>
+                            <th>Pago</th>
                             <th>Plan</th>
                             <th>Expiración</th>
                             <th>Horario</th>
@@ -103,17 +112,24 @@
         <div class="modal-content" style="max-width: 1050px; width: 95%; max-height: 92vh;">
             <h2>Nueva Licencia</h2>
             <form id="user-modal-form">
-                <div class="form-row-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form-row-3col" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 15px;">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="user-section">Sección / Tipo de Cuenta</label>
+                        <label for="user-section">Sección</label>
                         <select id="user-section" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; font-weight: 500;">
-                            <option value="clientes" selected>👥 Clientes (Licencia Vendida)</option>
-                            <option value="testeo">🧪 Testeo (Prueba / Demo)</option>
+                            <option value="clientes" selected>👥 Clientes</option>
+                            <option value="testeo">🧪 Testeo</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="user-price">Precio de Venta (COP)</label>
+                        <label for="user-price">Precio (COP)</label>
                         <input type="number" id="user-price" placeholder="Ej: 60000" min="0" step="1000" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="user-payment">Estado de Pago</label>
+                        <select id="user-payment" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; font-weight: 600;">
+                            <option value="pago" selected>🟢 Pagó</option>
+                            <option value="no_pago">🔴 No pagó</option>
+                        </select>
                     </div>
                 </div>
                 <div class="form-group">
