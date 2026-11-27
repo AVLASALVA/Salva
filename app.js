@@ -151,6 +151,54 @@ window.togglePaymentStatus = async (id) => {
     }
 };
 
+function getUserEnviado(u) {
+    if (!u || !u.horario_activacion) return false;
+    const e = u.horario_activacion._enviado;
+    return e === true || e === 'enviado' || e === 'si';
+}
+
+function renderEnviadoCell(u) {
+    const isEnviado = getUserEnviado(u);
+    return `
+        <label class="enviado-checklist-label ${isEnviado ? 'enviado' : 'pendiente'}" title="Clic para marcar como enviado o pendiente">
+            <input type="checkbox" 
+                   ${isEnviado ? 'checked' : ''} 
+                   onchange="toggleEnviadoStatus('${u.id}', this.checked)">
+            <span>${isEnviado ? '✅ Enviado' : '⏳ Pendiente'}</span>
+        </label>
+    `;
+}
+
+window.toggleEnviadoStatus = async (id, isChecked) => {
+    const user = users.find(x => x.id === id);
+    if (!user) return;
+
+    const updatedHorario = { ...(user.horario_activacion || {}) };
+    updatedHorario._enviado = isChecked;
+
+    // Actualización visual inmediata
+    user.horario_activacion = updatedHorario;
+    renderUsers();
+
+    try {
+        const { error } = await supabaseClient
+            .from('usuarios_app')
+            .update({
+                horario_activacion: updatedHorario,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+        if (error) {
+            alert("Error actualizando estado de envío: " + error.message);
+            await loadUsers();
+        }
+    } catch (e) {
+        alert("Error de conexión al actualizar estado de envío");
+        await loadUsers();
+    }
+};
+
 // Mostrar mensajes
 function showMessage(elementId, message, type = '') {
     const element = document.getElementById(elementId);
@@ -233,7 +281,7 @@ async function loadUsers() {
 
         if (error) {
             console.error("Error cargando usuarios:", error);
-            usersTableBody.innerHTML = '<tr><td colspan="6">Error cargando licencias</td></tr>';
+            usersTableBody.innerHTML = '<tr><td colspan="11">Error cargando licencias</td></tr>';
             return;
         }
 
@@ -310,7 +358,7 @@ function renderUsers() {
 
     if (filtered.length === 0) {
         const secLabel = activeSection === 'clientes' ? 'Clientes' : (activeSection === 'vip' ? 'VIP 💎' : 'Testeo');
-        usersTableBody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias en la sección ${secLabel}</td></tr>`;
+        usersTableBody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:30px; color:#64748b;">No se encontraron licencias en la sección ${secLabel}</td></tr>`;
         return;
     }
 
@@ -347,6 +395,7 @@ function renderUsers() {
                 <td>${renderPasswordCell(u)}</td>
                 <td>${renderPriceCell(u)}</td>
                 <td>${renderPaymentCell(u)}</td>
+                <td>${renderEnviadoCell(u)}</td>
                 <td><span class="badge">${escapeHtml(u.plan || 'Horario semanal')}</span></td>
                 <td>
                     ${formatDate(u.fecha_expiracion)}
@@ -677,6 +726,9 @@ createUserBtn.addEventListener('click', () => {
     const userPaymentEl = document.getElementById('user-payment');
     if (userPaymentEl) userPaymentEl.value = 'pago';
 
+    const userEnviadoEl = document.getElementById('user-enviado');
+    if (userEnviadoEl) userEnviadoEl.value = 'no';
+
     if (activeSection === 'vip') {
         if (radioVip) radioVip.checked = true;
         const userPriceEl = document.getElementById('user-price');
@@ -703,6 +755,7 @@ userModalForm.addEventListener('submit', async (e) => {
     const userSection = document.getElementById('user-section')?.value || 'clientes';
     const userPrice = Number(document.getElementById('user-price')?.value) || 0;
     const userPayment = document.getElementById('user-payment')?.value || 'pago';
+    const userEnviado = (document.getElementById('user-enviado')?.value || 'no') === 'si';
 
     if (!username || !password) {
         showMessage("user-modal-message", "Ingresa usuario y contraseña", "error");
@@ -752,6 +805,7 @@ userModalForm.addEventListener('submit', async (e) => {
     horario._precio = userPrice;
     horario._seccion = userSection;
     horario._pago = userPayment;
+    horario._enviado = userEnviado;
 
     showMessage("user-modal-message", "Creando licencia...", "");
 
@@ -1016,6 +1070,9 @@ window.saveUserSchedule = async () => {
         }
         if (existingUser.horario_activacion._pago !== undefined) {
             schedule._pago = existingUser.horario_activacion._pago;
+        }
+        if (existingUser.horario_activacion._enviado !== undefined) {
+            schedule._enviado = existingUser.horario_activacion._enviado;
         }
     }
 

@@ -94,6 +94,7 @@
                             <th>Contraseña</th>
                             <th>Precio</th>
                             <th>Pago</th>
+                            <th>Enviado</th>
                             <th>Plan</th>
                             <th>Expiración</th>
                             <th>Horario</th>
@@ -115,7 +116,7 @@
         <div class="modal-content" style="max-width: 1050px; width: 95%; max-height: 92vh;">
             <h2>Nueva Licencia</h2>
             <form id="user-modal-form">
-                <div class="form-row-3col" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 15px;">
+                <div class="form-row-3col" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 15px;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label for="user-section">Sección</label>
                         <select id="user-section" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; font-weight: 500;">
@@ -133,6 +134,13 @@
                         <select id="user-payment" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; font-weight: 600;">
                             <option value="pago" selected>🟢 Pagó</option>
                             <option value="no_pago">🔴 No pagó</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="user-enviado">Producto Enviado</label>
+                        <select id="user-enviado" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; font-weight: 600;">
+                            <option value="no" selected>⏳ Pendiente</option>
+                            <option value="si">✅ Enviado</option>
                         </select>
                     </div>
                 </div>
